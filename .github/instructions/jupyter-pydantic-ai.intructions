@@ -1,0 +1,61 @@
+## Repo Context
+This GitHub repo holds Jupyter notebooks (`.ipynb`) for data engineering, big data processing, and AI/ML workflows using Python with Polars, PyArrow, PostgreSQL, Hugging Face, and Gemini API. All notebooks enforce Pydantic models for configuration, data schemas, tool inputs/outputs, and results to ensure type safety and reproducibility.[3][4]
+
+## Notebook Structure
+- Begin with Markdown title cell: purpose, data sources, Pydantic models used, expected outputs.
+- Standard sections via Markdown headers: `# Imports`, `## Config (Pydantic)`, `## Data Loading`, `## EDA`, `## Processing`, `## Modeling`, `## Validation & Export`.
+- Every notebook defines 1+ Pydantic `BaseModel` subclasses for configs, inputs, and outputs.
+- End with export cell serializing validated results (Parquet/JSON via Pydantic).[2][3]
+
+## Pydantic Enforcement
+- **Configs**: Always use `class Config(BaseModel):` early in notebooks for paths, API keys, hyperparameters.
+- **Data schemas**: Define `class DataSchema(BaseModel):` matching your DataFrame schema before processing.
+- **Tool/Function inputs**: Wrap function params in Pydantic models: `def process_data(input: ProcessInput) -> pl.DataFrame`.
+- **Validation**: Call `.model_validate(data)` or `.model_dump()` before/after key operations.
+- **AI integration**: Use Pydantic for Hugging Face/Gemini tool schemas and response parsing.[5]
+
+Example skeleton Copilot should generate:
+```python
+from pydantic import BaseModel, Field
+from typing import List
+import polars as pl
+
+class Config(BaseModel):
+    data_path: str = Field(..., description="Parquet/S3 path")
+    max_rows: int = 100_000
+
+class OutputSchema(BaseModel):
+    processed_rows: int
+    mean_value: float
+    df_sample: List[dict]
+
+config = Config.model_validate({"data_path": "s3://bucket/data.parquet"})
+```
+
+## Coding Standards
+- Imports first: `from pydantic import BaseModel, Field, validator`; `import polars as pl`; `%load_ext autoreload; %autoreload 2`.
+- Prefer Polars lazy frames with Pydantic-validated params.
+- Type hints everywhere: `df: pl.LazyFrame`.
+- Visualizations: Plotly/Altair with Pydantic-wrapped data subsets.
+- Database: SQLAlchemy + Pydantic for query params/results.[4][3]
+
+## Copilot Behavior Rules
+- **New notebooks**: Generate full skeleton with Pydantic Config/Output models matching described task.
+- **Code generation**: Never suggest raw dicts/lists—always wrap in Pydantic `BaseModel`.
+- **Refactoring**: Convert existing dict usage to Pydantic models with `.model_validate()`.
+- **Cell completion**: Suggest complete, executable cells including model definitions and validation.
+- **Error prevention**: Add `try: model = MyModel.model_validate(data)` with `except ValidationError: print(error)`.
+- **Big data**: Use Pydantic for chunked processing configs; validate samples before full runs.
+
+## Common Patterns to Follow
+```
+1. Config(model_validate) → 2. Load data → 3. Define schemas → 4. Validate sample → 5. Process → 6. Output model → 7. Export validated JSON/Parquet
+```
+When users ask for analysis, always include Pydantic schemas first.[6][1]
+
+[1](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)
+[2](https://www.youtube.com/watch?v=Jt3i1a5tSbM)
+[3](https://learn.microsoft.com/en-us/shows/github-copilot-series/using-copilot-with-jupyter-notebooks)
+[4](https://www.youtube.com/watch?v=QS_bh-3qKdw)
+[5](https://github.com/CopilotKit/pydantic-ai-todos)
+[6](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features)

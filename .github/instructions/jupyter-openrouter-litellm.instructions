@@ -1,0 +1,142 @@
+# Jupyter Data Engineering Repo - Copilot Instructions
+
+This GitHub repo contains Jupyter notebooks (`.ipynb`) for big data engineering, AI agent workflows, and ML experiments. Follow strict structure, Pydantic validation, Polars for data processing, OpenRouter API + LiteLLM for agentic code, and AWS integration. Prioritize reproducibility, type safety, and performance.
+
+## Project Layout
+```
+├── notebooks/
+│   ├── 01_data_ingestion/         # Raw data loading & validation
+│   ├── 02_eda_analysis/           # Exploratory analysis with schemas
+│   ├── 03_data_pipeline/          # Polars processing pipelines
+│   ├── 04_ai_agents/              # Agentic workflows with OpenRouter
+│   ├── 05_modeling_ml/            # ML training & evaluation
+│   └── 06_export_reporting/       # Final outputs & dashboards
+├── src/
+│   ├── agents/                    # PydanticAI agents & tools
+│   ├── models/                    # Pydantic schemas
+│   ├── utils/                     # Helpers (db, s3, litellm)
+│   └── config.py                  # Repo-wide config
+├── data/                          # Sample data & schemas
+├── requirements.txt
+└── .github/copilot-instructions.md
+```
+
+## Notebook Structure (MANDATORY)
+Every notebook follows this exact pattern with Markdown headers:
+
+```
+# [Notebook Purpose] - [Date]
+## 1. Imports & Config
+## 2. Pydantic Schemas
+## 3. Data Loading & Validation
+## 4. EDA / Processing
+## 5. Agentic Workflows (if applicable)
+## 6. Results & Export
+```
+
+**Start EVERY notebook with:**
+```python
+%load_ext autoreload
+%autoreload 2
+%matplotlib inline
+from pydantic import BaseModel, Field, validator
+from typing import List, Optional
+import polars as pl
+import litellm
+from litellm import completion
+import openrouter
+```
+
+## Pydantic Schemas (ENFORCED)
+**Define schemas BEFORE any data operations:**
+
+```python
+class Config(BaseModel):
+    data_path: str = Field(..., description="S3/Parquet path")
+    openrouter_api_key: str = Field(..., description="OpenRouter API key")
+    max_rows: int = Field(100_000, ge=0)
+    model_name: str = Field("anthropic/claude-3.5-sonnet", description="OpenRouter model")
+
+class DataSchema(BaseModel):
+    id: str
+    timestamp: str
+    value: float
+    # Add fields matching your data
+
+class AgentOutput(BaseModel):
+    task: str
+    result: str
+    confidence: float
+    sql_query: Optional[str] = None
+```
+
+## Agentic Code with OpenRouter + LiteLLM
+**Use this EXACT pattern for AI agents:**
+
+```python
+# 1. Config with API key
+config = Config.model_validate({
+    "openrouter_api_key": "your_key_here",
+    "model_name": "anthropic/claude-3.5-sonnet"
+})
+
+# 2. LiteLLM setup
+litellm.api_base = "https://openrouter.ai/api/v1"
+litellm.api_key = config.openrouter_api_key
+
+# 3. Agent function with Pydantic
+class AgentTask(BaseModel):
+    goal: str
+    context: str
+    max_tokens: int = 2000
+
+def run_agent(task: AgentTask) -> AgentOutput:
+    response = completion(
+        model=config.model_name,
+        messages=[
+            {"role": "system", "content": "You are a data engineering expert. Respond with valid JSON matching AgentOutput schema."},
+            {"role": "user", "content": f"Goal: {task.goal}\nContext: {task.context}"}
+        ],
+        max_tokens=task.max_tokens,
+        temperature=0.1
+    )
+    return AgentOutput.model_validate_json(response.choices.message.content)
+```
+
+## Coding Standards & Best Practices
+- **Data**: Polars lazy frames `pl.scan_parquet()` → `.collect().lazy()`
+- **Validation**: `.model_validate(df.to_dicts()[0])` on samples first
+- **AWS**: `s3fs`, `boto3` for S3 access; use Pydantic for credentials
+- **DB**: `psycopg2` + SQLAlchemy; validate query params with Pydantic
+- **Export**: Always `model.model_dump_json()` → Parquet/JSON
+- **Viz**: Plotly with `fig.write_html("output.html")`
+- **Type hints**: Everywhere including notebook variables
+
+## Data Processing Patterns
+```
+1. config = Config.model_validate({...})
+2. df = pl.scan_parquet(config.data_path).head(config.max_rows)
+3. sample = df.collect().to_dicts()
+4. DataSchema.model_validate(sample)  # Validate schema
+5. agent_task = AgentTask(goal="analyze trends", context=df.describe().to_pandas().to_string())
+6. result = run_agent(agent_task)
+7. validated_output = AgentOutput.model_validate(result.model_dump())
+8. validated_output.model_dump_json()
+```
+
+## Copilot Behavior Rules
+- **New notebooks**: Generate COMPLETE skeleton matching exact structure above
+- **Agents**: ALWAYS use OpenRouter + LiteLLM pattern; never direct OpenAI
+- **Schemas**: Generate Pydantic models FIRST before any data code
+- **Cell completion**: Complete cells only; include validation + error handling
+- **Errors**: Wrap agent calls in `try: ... except litellm.LitellmException:`
+- **Performance**: Use Polars lazy evaluation; suggest `.sink_parquet()` for large writes
+- **Reproducibility**: Include `config.model_dump()` in every export cell
+
+## Common Tasks & Responses
+- **"EDA this data"** → Config + schema + Polars describe + agent analysis
+- **"Build agent for X"** → AgentTask + run_agent() + AgentOutput schema
+- **"Process pipeline"** → Lazy Polars → Pydantic validation → Export
+- **"Fix this cell"** → Add Pydantic validation + type hints + error handling
+
+**When generating code, reference `src/agents/` patterns and validate EVERY output matches declared Pydantic schemas.**

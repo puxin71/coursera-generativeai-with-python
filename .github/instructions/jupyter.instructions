@@ -1,0 +1,32 @@
+Create `.github/copilot-instructions.md` at your Jupyter GitHub repo root to guide Copilot on notebook structure, data science workflows, and Python best practices.[1][2][3]
+
+## Repo Overview
+This repository contains Jupyter notebooks (`.ipynb`) for data engineering, analysis, and ML experiments using Python libraries like Polars, PyArrow, Pandas, PostgreSQL connectors, Hugging Face, and Gemini API. Notebooks follow a standard structure: imports, data loading, EDA, modeling, visualization, and export. Focus on reproducible, performant code for big data processing.[4][1]
+
+## Notebook Structure Guidelines
+- Start every notebook with a Markdown title cell describing purpose, data sources, and expected outputs.
+- Use Markdown headers (`##`, `###`) for sections: Imports, Data Loading, EDA, Processing, Modeling, Results, Export.
+- Place executable code in code cells; intersperse explanatory Markdown cells.
+- End with a cell exporting results (e.g., Parquet to S3, models to Hugging Face Hub).[5][1]
+
+## Coding Standards
+- Prefer Polars over Pandas for large datasets; use PyArrow for I/O.
+- Add type hints to functions: `def process_data(df: pl.DataFrame) -> pl.DataFrame:`
+- Use `%load_ext autoreload` and `autoreload 2` for module development.
+- Include `%matplotlib inline` for plots; prefer Plotly or Altair over Matplotlib.
+- For ML: Use Hugging Face Transformers or Gemini API; save models with `model.save_pretrained("path")`.
+- Database: Use `psycopg2` or SQLAlchemy for PostgreSQL/Aurora connections with async support where possible.[1][4]
+
+## Common Workflows
+- Data loading: `df = pl.read_parquet("s3://bucket/file.parquet")` or PostgreSQL queries.
+- EDA: `df.describe()`, `df.null_count()`, `df.plot()`.
+- Testing: Add cells with assertions like `assert df.height > 0`.
+- Export: Save artifacts as Parquet/CSV; log metrics with Weights & Biases if configured.
+- When generating code, reference existing notebooks for patterns; avoid deprecated Pandas syntax.[6][1]
+
+## Copilot Behavior
+- Suggest complete cells, not partial lines, when editing notebooks.
+- Prioritize efficient big data ops (e.g., lazy Polars frames).
+- Generate visualizations with clear labels and export options.
+- For new notebooks: `/newNotebook` style prompts should create structured skeletons matching this repo's style.
+- Always validate generated code runs without errors in Jupyter kernel context.[7][5]
